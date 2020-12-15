@@ -23,7 +23,6 @@ void setup(void)
     int activeMenuButton = 0; //The button currently highlighted on the GUI
     int pushedButton = 2;     //The button pushed on the control panel by the user
 
-    //selectButton(pushedButton, activeMenu, activeMenuButton);
     genMenu(&activeMenu, &selectedButton, &selectFlag, &activeFrame);
     attachInterrupt(upArrButt, readPushedButt, HIGH);
     attachInterrupt(downArrButt, readPushedButt, HIGH);

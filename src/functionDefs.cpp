@@ -9,25 +9,32 @@
 
 SnoozeDigital digitalWakeUp;
 
-Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);
+Adafruit_ST7789 tft = Adafruit_ST7789(TFT_CS, TFT_DC, TFT_RST);//Declare a tft screen object to use for the display
 SnoozeBlock config(digitalWakeUp);
 
 float p = 3.141562654;
-int selectedButton = 0;
-volatile boolean changeFlag;
-volatile int changeButtonDir = 0;
-int activeMenu = 0;
-int activeFrame = 0;
+int selectedButton = 0;//Tells the program which button in a menu is supposed to be highlighted (0 being topmost)
+volatile boolean changeFlag;//Flags when a change in menu state has been triggered by the user
+volatile int changeButtonDir = 0;//Flags when the user is changing the direction of their menu navigation
+int activeMenu = 0;//Records which menu is is being displayed
+/*
+    Main Menu: 0
+    Run Menu: 1
+    Edit Menu: 2
+    Calibrate Menu: 3
+*/
+int activeFrame = 0;//Records which set of buttons is being displayed as the user navigates up or down a menu, eg. activeFrame = 0 for
+//buttons 0, 1, 2; activeFrame = 1 for buttons 1, 2, 3, etc.
 int menuHeight = 0;
-int numButtDisplayed = 3;
+int numButtDisplayed = 3;//How many buttons are displayed on a single frame
 int *ptr = &numButtDisplayed;
-boolean selectFlag = false;
-boolean bottFlag = false;
-boolean topFlag = false;
+boolean selectFlag = false;//Flags whether a button has been selected
+boolean bottFlag = false;//Flag when the printMenu() function has reached the bottom button
+boolean topFlag = false;//Flag when the printMenu() function has reached the top button
 
-char menuName[200] = "";
+char menuName[200] = "";//Holds the text that is displayed at the top of each menu, not always the name though
 
-int frameCounts[3] = {1, 2, 2};
+int frameCounts[3] = {1, 2, 2};//Array holding the total number of frames for each menu
 
 char *menuButt[200] = {
     "Run Programs",
@@ -42,38 +49,42 @@ void genMenu(int* actMenu, int* selButt, boolean* selFlag, int* actFrame)
     //If the green SELECT button was pushed, determine what screen to load
     if (*selFlag)
     {
-        //If the user selected the first button on the MAIN menu, load the RUN menu.
+        //If the user is in the main menu, any button they select will load a new menu. Determine which one to load
         if (*actMenu == 0)
         {
+            //Load the Run Menu if the first button is highlighted, reset which button is selected
             if (*selButt == 0)
             {
                 *actMenu = 1;
                 *selButt = 0;
                 tft.fillScreen(ST77XX_BLACK);
-                blankMenu(); //Reset the button names
+                //blankMenu(); //Reset the button names
                 genRunMenu(*selButt);
                 *selFlag = false;
             }
+            //Load the Edit Menu if the first button is highlighted, reset which button is selected
             else if (*selButt == 1)
             {
                 *actMenu = 2;
                 *selButt = 0;
                 tft.fillScreen(ST77XX_BLACK);
-                blankMenu(); //Reset the button names
+                //blankMenu(); //Reset the button names
                 genEditMenu(selButt, &numButtDisplayed);
                 *selFlag = false;
             }
+            //Load the Calibrate Menu if the first button is highlighted, reset which button is selected
             else if (*selButt == 2)
             {
                 *actMenu = 3;
                 *selButt = 0;
                 tft.fillScreen(ST77XX_BLACK);
-                blankMenu(); //Reset the button names
+                //blankMenu(); //Reset the button names
                 genCalibrateMenu();
                 *selFlag = false;
             }
 
         }
+        //If the Run Menu is active, the user will either select a program to run or choose to back out to the Main Menu
         else if (*actMenu == 1)
         {
             if (*selButt == 0)
@@ -93,6 +104,7 @@ void genMenu(int* actMenu, int* selButt, boolean* selFlag, int* actFrame)
             else if (*selButt == 4)
             {
             }
+            //Back out to the Main Menu
             else if (*selButt == 5)
             {
                 *actMenu = 0;
@@ -105,6 +117,7 @@ void genMenu(int* actMenu, int* selButt, boolean* selFlag, int* actFrame)
                 *selFlag = false;
             }
         }
+        //If the Edit Menu is active, the user will either select a program to run or choose to back out to the Main Menu
         else if (*actMenu == 2)
         {
             if (*selButt == 0)
@@ -122,6 +135,7 @@ void genMenu(int* actMenu, int* selButt, boolean* selFlag, int* actFrame)
             else if (*selButt == 4)
             {
             }
+            //Back out to the Main Menu
             else if (*selButt == 5)
             {
                 *actMenu = 0;
@@ -134,11 +148,13 @@ void genMenu(int* actMenu, int* selButt, boolean* selFlag, int* actFrame)
                 *selFlag = false;
             }
         }
+        //If the Calibrate Menu is active, the user will either reset the positioning of the gantry or choose to back out to the Main Menu
         else if (*actMenu == 3)
         {
             if (*selButt == 0)
             {
             }
+            //Back out to the Main Menu
             else if (*selButt == 1)
             {
                 *actMenu = 0;
@@ -152,6 +168,8 @@ void genMenu(int* actMenu, int* selButt, boolean* selFlag, int* actFrame)
             }
         }
     }
+    //If the green SELECT button was not pushed, the user used one of the directional arrows to navigate up and down. Regenerate the active menu to
+    //reflect that change
     else
     {
         if (*actMenu == 0)
@@ -173,10 +191,12 @@ void genMenu(int* actMenu, int* selButt, boolean* selFlag, int* actFrame)
     }
 }
 
+//This function determines which button press triggered the interrupt that called it and and records the necessary menu changes to be 
+//implemented by genMenu()
 void readPushedButt()
 {
-    Serial.println("Pushed");
-
+    //This function will only progress if changeFlag has not been tripped already. Otherwise this function would be called multiple
+    //times for each button press.
     if (!changeFlag)
     {
         //If the user pushed the up button, move the menu selection up and flag that a change has occurred
@@ -189,8 +209,6 @@ void readPushedButt()
         //If the user pushed the down button, move the menu selection down and flag that a change has occurred
         else if (digitalRead(downArrButt))
         {
-            Serial.print("frameCounts[1]: ");
-            Serial.println(frameCounts[1]);
             selectedButton++;
             changeFlag = true;
             changeButtonDir = 1;
@@ -205,6 +223,7 @@ void readPushedButt()
     }
 }
 
+//Contains the text of every button in each menu, called upon menu generation
 char **getMenuText(int currMenu)
 {
     if (currMenu == 0)
@@ -241,23 +260,30 @@ void blankMenu()
     }
 }
 
+//Prints the active menu's title and buttons
 void printMenu(int choseButt, int menuLength, int menuNum)
 {
     int i;
+
     //Define the starting point of any menu
     int xCorner = 15;
     int yCorner = 50;
 
+    //If the selected button is beyond the end of the visible frame, decide whether to increase the frame based on whether the selected button
+    //exceeds the total number of buttons or not
     if (selectedButton == numButtDisplayed + activeFrame)
     {
+        //If the selected button does not exceed the menu's length, move to a higher frame number
         if (numButtDisplayed + activeFrame < menuLength)
         {
             activeFrame++;
             selectFlag = true;
         }
     }
+    //If the user has navigated above the given frame, decide whether to bump to a lower frame
     else if (selectedButton < activeFrame)
     {
+        //As long as the base frame isn't the one currently displayed, bump to a lower frame
         if (activeFrame > 0)
         {
             activeFrame--;
@@ -265,37 +291,44 @@ void printMenu(int choseButt, int menuLength, int menuNum)
         }
     }
 
+    //If a new menu has been selected, erase the current one
     if (selectFlag)
     {
         blankMenuButtons(menuLength, xCorner, yCorner);
         selectFlag = false;
     }
 
+    //Write the menu's name starting in the top left corner
     tft.setCursor(xCorner, 10);
     writeText(menuName, ST77XX_BLUE, 2);
 
+    //Loop through the buttons, printing them where appropriate
     for (i = 0; i < numButtDisplayed; i += 1)
     {
-
+        //If the selected button is already at the bottom of the screen and the user wants to move down, decide whether this is possible
         if (bottFlag & changeButtonDir == 1)
         {
+            //If the selected button will exceed the length of this menu, reselect the last button in the menu for selectedButton
             if (selectedButton > menuLength - 1)
             {
                 selectedButton = menuLength - 1;
             }
         }
+        //If the selected button exceeds the upper bound of the active frame, decide whether it's possible to move up
         else if ((selectedButton < activeFrame & changeButtonDir == -1) & i == 0)
         {
-            Serial.println("Beyond upper bound");
+            //If the selected button is less than the topmost allowed button, reselected the topmost button for selectedButton
             if (selectedButton < 0)
             {
                 selectedButton = 0;
             }
         }
+        //If the current iteration's button matches with the user's selected button, print a highlighted button to show that it is selected
         else if (i + activeFrame == selectedButton)
         {
             tft.fillRoundRect(xCorner - 5, yCorner - 20 + (55 * i) - 10 + (menuHeight * 20), 220, 35, 5, 0x96C6);
 
+            //Flag whether this button is at the top of a frame, the bottom, or neither
             if (i + activeFrame == menuLength - 1)
             {
                 bottFlag = true;
@@ -312,56 +345,55 @@ void printMenu(int choseButt, int menuLength, int menuNum)
                 topFlag = false;
             }
         }
+        //If the current iteration's button is above the selected button and the user is moving downwards, fill in this button with black
         else if (i + activeFrame == selectedButton - 1 & changeButtonDir == 1)
         {
             tft.fillRoundRect(xCorner - 5, yCorner + (55 * i) - 30 + (menuHeight * 20), 220, 35, 5, ST77XX_BLACK);
             //Serial.println("Filling button above with black");
         }
+        //If the current iteration's button is below the selected button and the user is moving upwards, fill in this button with black
         else if (i + activeFrame == selectedButton + 1 & changeButtonDir == -1)
         {
             tft.fillRoundRect(xCorner - 5, yCorner + (55 * i) - 30 + (menuHeight * 20), 220, 35, 5, ST77XX_BLACK);
             //Serial.println("Filling button below with black");
         }
 
+        //If the current iteration's button is within the acceptable length of the menu, print its text
         if (i + 1 + activeFrame <= frameCounts[menuNum] + 4)
         {
-            Serial.println("printMenu Stage 3ab");
             tft.setCursor(xCorner, yCorner + (55 * i) + (menuHeight * 20) - 20);
             Serial.println(menuButt[i + activeFrame]);
-            testDrawText(menuButt[i + activeFrame], ST77XX_BLUE, 2);
+            drawText(menuButt[i + activeFrame], ST77XX_BLUE, 2);
             testroundrects(xCorner - 10, yCorner + (55 * i) - 35 + (menuHeight * 20));
         }
 
-        Serial.print("activeFrame: ");
-        Serial.println(activeFrame);
-        Serial.print("menuLength: ");
-        Serial.println(menuLength);
-        Serial.print("numButtDisplayed: ");
-        Serial.println(numButtDisplayed);
+        //If the menu is shorter than the number of buttons displayed, black out the upward indicator triangle
         if (menuLength <= numButtDisplayed)
         {
             tft.fillTriangle(220, 10, 205, 25, 235, 25, ST77XX_BLACK);
         }
+        //If the selected button is at the top of the menu but the menu extends off-screen, add a downward indicator triangle
         else if (activeFrame == 0 & topFlag)
         {
             tft.fillTriangle(220, 235, 205, 220, 235, 220, ST77XX_WHITE);
             tft.fillTriangle(220, 10, 205, 25, 235, 25, ST77XX_BLACK);
         }
+        //If the active frame is below the topmost frame and above the bottommost, display both the upward and downward indicator triangles
         else if (activeFrame > 0 & activeFrame < menuLength - numButtDisplayed)
         {
             tft.fillTriangle(220, 10, 205, 25, 235, 25, ST77XX_WHITE);
             tft.fillTriangle(220, 235, 205, 220, 235, 220, ST77XX_WHITE);
         }
+        //If the bottommost frame is being displayed, display the upward indicator triangle
         else if (activeFrame == menuLength - numButtDisplayed)
         {
             tft.fillTriangle(220, 10, 205, 25, 235, 25, ST77XX_WHITE);
             tft.fillTriangle(220, 235, 205, 220, 235, 220, ST77XX_BLACK);
         }
-
-        Serial.println("\r");
     }
 }
 
+//Generates the Main Menu, specifying the length and title/button text. Calls the printMenu() function to display it
 void genMainMenu(int choseButt)
 {
     int mainMenuLength = 3;
@@ -375,9 +407,7 @@ void genMainMenu(int choseButt)
     printMenu(choseButt, mainMenuLength, 0);
 }
 
-//Generates the menu for running programs.
-//Takes as input the GUI button that is currently highlighted, the frame that is displayed,
-//and the direction that the user moved the GUI button selection.
+//Generates the Run Menu, specifying the length and title/button text. Calls the printMenu() function to display it
 void genRunMenu(int choseButt)
 {
     int runMenuLength = 6;
@@ -394,7 +424,7 @@ void genRunMenu(int choseButt)
 
     printMenu(choseButt, runMenuLength, 1);
 }
-
+//Generates the Edit Menu, specifying the length and title/button text. Calls the printMenu() function to display it
 void genEditMenu(int *choseButt, int *numButtDisplayed)
 {
     int runMenuLength = 6;
@@ -413,6 +443,7 @@ void genEditMenu(int *choseButt, int *numButtDisplayed)
     printMenu(*choseButt, runMenuLength, 2);
 }
 
+//Generates the Calibrate Menu, specifying the length and title/button text. Calls the printMenu() function to display it
 void genCalibrateMenu()
 {
     int xCorner = 5;
@@ -431,6 +462,8 @@ void genCalibrateMenu()
 
     printMenu(0, calibrateMenuLength, 3);
 }
+
+//selectButton is never called, consider deleting
 
 //This function takes as input: the physical button the user pushed, the menu currently displayed, and the button highlighted on the menu.
 //It evaluates whether to open a new menu, allow for program entry, run a program, etc.
@@ -497,7 +530,8 @@ void selectButton(int pushButt, int menu, int selButt)
     }
 }
 
-void testDrawText(char *text, uint16_t color, int textSize)
+//Takes the appropriate size and colour and prints a line of text wherever the cursor is pointing
+void drawText(char *text, uint16_t color, int textSize)
 {
 
     tft.setTextSize(textSize);
@@ -506,6 +540,7 @@ void testDrawText(char *text, uint16_t color, int textSize)
     tft.println(text);
 }
 
+//Writes wrapped text. Used for paragraph writing, bases line length on the 240 x 240 tft 
 void writeText(char *text, uint16_t color, int textSize)
 {
     int i = 0;
@@ -518,20 +553,19 @@ void writeText(char *text, uint16_t color, int textSize)
     tft.setTextSize(textSize);
     tft.setTextColor(color);
 
-    Serial.println("Beginning print loop");
 
     for (i = 0; i < menuLen; i++)
     {
-        Serial.print("i: ");
-        Serial.println(i);
-        //If the space does not occur at the end of a line, print it
+
+        //If a space is detected, determine whether to print it
         if (text[i] == ' ')
         {
+            //If the space is at the end of a line, skip over it
             if (i % 19 == 1)
             {
-                //Skip over this character, as a space should not appear at the start of a line.
                 charCounter++;
             }
+            //If the space is not at the start of a line, print it
             else if (i % 19 != 0)
             {
                 tft.print(text[i]);
@@ -544,6 +578,7 @@ void writeText(char *text, uint16_t color, int textSize)
                 lineCharCounter = 0;
             }
         }
+        //If the character is a null character, end the print loop
         else if (text[i] == '\0')
         {
             tft.println(text[charCounter]); //Print the final character
@@ -551,43 +586,32 @@ void writeText(char *text, uint16_t color, int textSize)
         }
         else
         {
+            //Iterate through a word to determine its length
             while (text[i + j] != ' ' & text[i + j] != '\0')
             {
                 wordLen++;
                 j++;
-                Serial.print("wordLen: ");
-                Serial.println(wordLen);
-                Serial.println(text[i + j]);
             }
 
-            Serial.print("wordLen: ");
-            Serial.println(wordLen);
-            Serial.print(" 19 - (lineCharCounter % 19): ");
-            Serial.println(19 - (lineCharCounter % 19));
+            //If the word will not spill over the line character limit, print it
             if (wordLen < (19 - (lineCharCounter % 19)) & (lineCharCounter % 19) != 0)
             {
-                Serial.print("lineCharCounter % 19: ");
-                Serial.println(lineCharCounter % 19);
                 tft.print(text[i]);
-                Serial.println(text[i]);
                 lineCharCounter++;
             }
+            //If nothing has been printed on this line yet, print the word
             else if (lineCharCounter == 0)
             {
                 tft.print(text[i]);
-                Serial.println(text[i]);
                 lineCharCounter++;
             }
+            //If the word won't fit on the line, start a new line and print it
             else
             {
                 tft.print('\n');
-                Serial.print("i: ");
-                Serial.println(i);
                 tft.print(text[i]);
                 lineCharCounter = 0;
             }
-            Serial.print("i: ");
-            Serial.println(i);
             wordLen = 0;
             j = 0;
         }

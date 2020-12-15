@@ -28,28 +28,29 @@
 
 extern SnoozeDigital digitalWakeUp;
 
-extern Adafruit_ST7789 tft;
+extern Adafruit_ST7789 tft;//Declare a tft screen object to use for the display
 extern SnoozeBlock config;
 
 extern float p;
-extern int selectedButton;
-extern volatile boolean changeFlag;
-extern volatile int changeButtonDir;
-extern int activeMenu;
-extern int activeFrame;
+extern int selectedButton;//Tells the program which button in a menu is supposed to be highlighted (0 being topmost)
+extern volatile boolean changeFlag;//Flags when a change in menu state has been triggered by the user
+extern volatile int changeButtonDir;//Flags when the user is changing the direction of their menu navigation
+extern int activeMenu;//Records which menu is is being displayed
+extern int activeFrame;//Records which set of buttons is being displayed as the user navigates up or down a menu, eg. activeFrame = 0 for
+//buttons 0, 1, 2; activeFrame = 1 for buttons 1, 2, 3, etc.
 extern int menuHeight;
-extern int numButtDisplayed;
+extern int numButtDisplayed;//How many buttons are displayed on a single frame
 extern int *ptr;
 extern boolean selectFlag;//Flags whether a button has been selected
 extern boolean bottFlag;//Flag when the printMenu() function has reached the bottom button
-extern boolean topFlag;
+extern boolean topFlag;//Flag when the printMenu() function has reached the top button
 
-extern int frameCounts[];
-extern char menuName[];
+extern int frameCounts[];//Array holding the total number of frames for each menu
+extern char menuName[];//Holds the text that is displayed at the top of each menu, not always the name though
 extern char *menuButt[];
 
 
-void testDrawText(char *text, uint16_t color, int textSize);
+void drawText(char *text, uint16_t color, int textSize);
 void testroundrects(int x, int y);
 void genMenu(int* actMenu, int* selButt, boolean* selFlag, int* actFrame);
 void selectButton(int selButt, int menu, int pushButt);
